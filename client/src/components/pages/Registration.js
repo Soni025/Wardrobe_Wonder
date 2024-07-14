@@ -1,0 +1,207 @@
+
+import React, { Component } from 'react';
+import axios from 'axios';
+import { Link, Redirect } from 'react-router-dom';
+import setAuthToken from '../utils/setAuthToken';
+import jwtDecode from 'jwt-decode';
+import { headShake } from "react-animations";
+import { StyleSheet, css } from "aphrodite";
+
+const styles = StyleSheet.create({
+    mismatch: {
+        animationName: headShake,
+        animationDuration: "1s"
+    }
+})
+
+class Registration extends Component {
+    constructor(props) {
+        super(props);
+
+        this.state = {
+            firstName: '',
+            lastName: '',
+            email: '',
+            password: '',
+            password_confirmation: '',
+            registrationErrors: '',
+            redirect: false,
+            errors: {}
+        };
+    }
+
+    componentDidMount() {
+        if (localStorage.styls) {
+            setAuthToken(localStorage.styls);
+            // decode token and get user info
+            const decoded = jwtDecode(localStorage.styls);
+            // check for expired token
+            const currentTime = Date.now() / 1000;
+            if (decoded.exp < currentTime) {
+                localStorage.removeItem('styls');
+            } else {
+                window.location.href = '/dashboard';
+            }
+        }
+    }
+
+    handleChange = event => {
+        const { name, value } = event.target;
+
+        this.setState({
+            [name]: value
+        });
+    };
+
+
+    handleSubmit = event => {
+        event.preventDefault();
+
+        const newUser = {
+            firstName: this.state.firstName,
+            lastName: this.state.lastName,
+            email: this.state.email,
+            password: this.state.password,
+            password_confirmation: this.state.password_confirmation
+        };
+
+
+        // logs user in through auth route
+        if(newUser.password === newUser.password_confirmation) {
+            axios
+            .post('/api/user', newUser)
+            .then(response => {
+                this.setState({
+                    redirect: true
+                })
+                //this.props.history.push('/login')
+            })
+            .catch(err => console.log(err.response.data));
+        } else if (newUser.password !== newUser.password_confirmation) {
+            let errors = {}
+            errors.password = "Check that your passwords match"
+            this.setState({
+                errors 
+            })
+        } else if(!newUser.firstName) {
+            let errors = {}
+            errors.firstName = "This field is required"
+            this.setState({
+                errors
+            })
+        }
+       
+    };
+
+    render() {
+        const { redirect } = this.state;
+
+        if (redirect) {
+            return <Redirect to="/dashboard" />;
+        }
+
+        return (
+            <div className="container">
+                <div className="row">
+                    <div className="col-md-4 offset-md-4">
+                        <h2 style={{ margin: '30px auto' }}>
+                            Register with Styls
+                        </h2>
+                        <form onSubmit={this.handleSubmit}>
+                            <div className="form-group">
+                                <label htmlFor="firstName">First Name</label>
+                                <input
+                                    type="text"
+                                    className={`form-control ${this.state.errors.firstName ? "is-invalid" : ""}`}
+                                    name="firstName"
+                                    placeholder="First Name"
+                                    value={this.state.firstName}
+                                    onChange={this.handleChange}
+                                    required
+                                />
+                                {this.state.errors.firstName ? (
+                                <div className="invalid-feedback">
+                                {this.state.errors.firstName}
+                                </div>
+                            ) : ""}
+                            </div>
+                            <div className="form-group">
+                                <label htmlFor="lastName">Last Name</label>
+                                <input
+                                    className="form-control"
+                                    type="text"
+                                    name="lastName"
+                                    placeholder="Last Name"
+                                    value={this.state.lastName}
+                                    onChange={this.handleChange}
+                                    required
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label htmlFor="email">Email address</label>
+                                <input
+                                    type="email"
+                                    className="form-control"
+                                    name="email"
+                                    placeholder="Email"
+                                    value={this.state.email}
+                                    onChange={this.handleChange}
+                                    required
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label htmlFor="password">Password</label>
+                                <input
+                                    type="password"
+                                    className={`form-control ${this.state.errors.password ? `${css(styles.mismatch)} is-invalid` : ""}`}
+                                    name="password"
+                                    placeholder="Password"
+                                    value={this.state.password}
+                                    onChange={this.handleChange}
+                                    required
+                                />
+                                {this.state.errors.password ? (
+                                <div className="invalid-feedback">
+                                {this.state.errors.password}
+                                </div>
+                            ) : ""}
+                            </div>
+                            <div className="form-group">
+                                <label htmlFor="password_confirmation">
+                                    Confirm Password
+                                </label>
+                                <input
+                                    type="password"
+                                    className={`form-control ${this.state.errors.password ? `${css(styles.mismatch)} is-invalid` : ""}`}
+                                    name="password_confirmation"
+                                    placeholder="Password confirmation"
+                                    value={this.state.password_confirmation}
+                                    onChange={this.handleChange}
+                                    required
+                                />
+                                {this.state.errors.password ? (
+                                <div className="invalid-feedback">
+                                {this.state.errors.password}
+                                </div>
+                            ) : ""}
+                            </div>
+
+                            <button
+                                type="submit"
+                                className="btn btn-primary btn-block"
+                            >
+                                Register
+                            </button>
+                        </form>
+                        <p style={{ marginTop: 30, fontsize: '0.8rem' }}>
+                            Already registered? <Link to="/login"> Login </Link>{' '}
+                            now.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+}
+
+export default Registration;
